@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         donguri arena assist tool
-// @version      1.2.2d改 ume25%・75%予約版
+// @version      1.2.2d改 ume25%・75%予約版(旧)
 // @description  fix arena ui and add functions
 // @author       ぱふぱふ
 // @match        https://donguri.5ch.net/teambattle?m=hc
@@ -1117,7 +1117,7 @@
     (()=>{
       const link = document.createElement('a');
       link.style.color = '#333';
-      link.textContent = '1.2.2d改 ume25%・75%予約版';
+      link.textContent = '1.2.2d改 ume25%・75%予約版(旧)';
       footer.append(link);
     })();
 
