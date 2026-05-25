@@ -1,27 +1,27 @@
 // ==UserScript==
 // @name         donguri arena assist tool
-// @version      1.2.2d改 ume予約版(旧)
+// @version      1.2.2d改 ume予約版 04/16
 // @description  fix arena ui and add functions
 // @author       ぱふぱふ
-// @match        https://donguri.5ch.net/teambattle?m=hc
-// @match        https://donguri.5ch.net/teambattle?m=l
-// @match        https://donguri.5ch.net/teambattle?m=rb
-// @match        https://donguri.5ch.net/bag
+// @match        https://donguri.5ch.io/teambattle?m=hc
+// @match        https://donguri.5ch.io/teambattle?m=l
+// @match        https://donguri.5ch.io/teambattle?m=rb
+// @match        https://donguri.5ch.io/bag
 // ==/UserScript==
 
 
 (()=>{
-  if(location.href === 'https://donguri.5ch.net/bag') {
+  if(location.href === 'https://donguri.5ch.io/bag') {
     function saveCurrentEquip(url, index) {
       let currentEquip = JSON.parse(localStorage.getItem('current_equip')) || [];
-      const regex = /https:\/\/donguri\.5ch\.net\/equip\/(\d+)/;
+      const regex = /https:\/\/donguri\.5ch\.io\/equip\/(\d+)/;
       const equipId = url.match(regex)[1];
       currentEquip[index] = equipId;
       localStorage.setItem('current_equip', JSON.stringify(currentEquip));
     }
     const tableIds = ['weaponTable', 'armorTable', 'necklaceTable'];
     tableIds.forEach((elm, index)=>{
-      const equipLinks = document.querySelectorAll(`#${elm} a[href^="https://donguri.5ch.net/equip/"]`);
+      const equipLinks = document.querySelectorAll(`#${elm} a[href^="https://donguri.5ch.io/equip/"]`);
       [...equipLinks].forEach(link => {
         link.addEventListener('click', ()=>{
           saveCurrentEquip(link.href, index);
@@ -81,7 +81,8 @@
       toolbar.style.right = distance;
     }
   })();
-  header.querySelector('h4').style.display = 'none';
+  const h4 = header.querySelector('h4');
+  if (h4) h4.style.display = 'none';
   header.append(toolbar);
   const progressBarContainer = document.createElement('div');
   const progressBar = document.createElement('div');
@@ -1117,7 +1118,7 @@
     (()=>{
       const link = document.createElement('a');
       link.style.color = '#333';
-      link.textContent = '1.2.2d改 ume予約版(旧)';
+      link.textContent = '1.2.2d改 ume予約版';
       footer.append(link);
     })();
 
@@ -1630,7 +1631,7 @@
     async function showEquipList(){
       if(!weaponTable || !armorTable || !necklaceTable) {
         try {
-          const res = await fetch('https://donguri.5ch.net/bag');
+          const res = await fetch('https://donguri.5ch.io/bag');
           if(!res.ok) throw new Error('bag response error');
           const text = await res.text();
           const doc = new DOMParser().parseFromString(text, 'text/html');
@@ -1647,7 +1648,7 @@
             table.style.margin = '0';
             const rows = table.querySelectorAll('tr');
             rows.forEach(row => {
-              const id = row.cells[1].querySelector('a')?.href.replace('https://donguri.5ch.net/equip/','');
+              const id = row.cells[1].querySelector('a')?.href.replace('https://donguri.5ch.io/equip/','');
               row.cells[0].style.textDecorationLine = 'underline';
               row.cells[0].style.cursor = 'pointer';
               row.cells[0].dataset.id = id;
@@ -1809,7 +1810,7 @@
     const equipPresets = JSON.parse(localStorage.getItem('equipPresets')) || {};
     const fetchPromises = equipPresets[presetName].id
       .filter(id => id !== undefined && id !== null && !currentEquip.includes(id)) // 未登録or既に装備中の部位は除外
-      .map(id => fetch('https://donguri.5ch.net/equip/' + id));
+      .map(id => fetch('https://donguri.5ch.io/equip/' + id));
 
     stat.textContent = '装備中...';
     try {
@@ -1872,8 +1873,8 @@
 
       const text = await res.text();
       const doc = new DOMParser().parseFromString(text, 'text/html');
-      const h1 = doc?.querySelector('h1')?.textContent;
-      if (h1 !== 'どんぐりチーム戦い') throw new Error('title.ng info');
+      const headerText = doc?.querySelector('header')?.textContent || '';
+      if (!headerText.includes('どんぐりチーム戦い')) throw new Error('title.ng info');
 
       const currentCells = grid.querySelectorAll('.cell');
       const scriptContent = doc.querySelector('.grid > script').textContent;
@@ -1995,15 +1996,15 @@
   async function fetchSingleArenaInfo(elm) {
     try {
       const { row, col } = elm.dataset;
-      const url = `https://donguri.5ch.net/teambattle?r=${row}&c=${col}&`+MODE;
+      const url = `https://donguri.5ch.io/teambattle?r=${row}&c=${col}&`+MODE;
       const res = await fetch(url);
       if(!res.ok) throw new Error(res.status + ' res.ng');
       const text = await res.text();
       const doc = new DOMParser().parseFromString(text, 'text/html');
-      const h1 = doc?.querySelector('h1')?.textContent;
-      if(h1 !== 'どんぐりチーム戦い') throw new Error(`title.ng [${row}][${col}][${h1}]`);
+      const headerText = doc?.querySelector('header')?.textContent || '';
+      if(!headerText.includes('どんぐりチーム戦い')) throw new Error(`title.ng [${row}][${col}]`);
       const rank = doc.querySelector('small')?.textContent || '';
-      if(!rank) return Promise.reject(`rank.ng [${row}][${col}][${h1}]`);
+      if(!rank) return Promise.reject(`rank.ng [${row}][${col}]`);
       const leader = doc.querySelector('strong')?.textContent || '';
       const shortenRank = rank.replace('[エリート]','e').replace('[警備員]だけ','警').replace('から','-').replace(/(まで|\[|\]|\||\s)/g,'');
       const teamname = doc.querySelector('table').rows[1]?.cells[2].textContent;
@@ -2186,14 +2187,14 @@
   })();
 
   async function fetchArenaTable(row, col){
-    const url = `https://donguri.5ch.net/teambattle?r=${row}&c=${col}&`+MODE;
+    const url = `https://donguri.5ch.io/teambattle?r=${row}&c=${col}&`+MODE;
     try {
       const res = await fetch(url);
       if(!res.ok) throw new Error('res.ng');
       const text = await res.text();
       const doc = new DOMParser().parseFromString(text,'text/html');
-      const h1 = doc?.querySelector('h1')?.textContent;
-      if(h1 !== 'どんぐりチーム戦い') return Promise.reject(`title.ng`);
+      const headerText = doc?.querySelector('header')?.textContent || '';
+      if(!headerText.includes('どんぐりチーム戦い')) return Promise.reject(`title.ng`);
       const table = doc.querySelector('table');
       if(!table) throw new Error('table.ng');
       showArenaTable(table);
@@ -2525,7 +2526,6 @@
     let teamColor = settings.teamColor;
     let teamName = settings.teamName;
 
-
     function logMessage(region, message, next) {
       const date = new Date();
       const ymd = date.toLocaleDateString('sv-SE').slice(2);
@@ -2565,9 +2565,12 @@
       capitalAttack: [
         '再建が必要です。'
       ],
+      onemoretime: [
+        'この場所には首都を建設できません（水で隣接が不足）',
+        'もう一度バトルに参加する前に、待たなければなりません。'
+      ],
       breaktime: [
         'チームに参加または離脱してから間もないため、次のバトルが始まるまでお待ちください。',
-        'もう一度バトルに参加する前に、待たなければなりません。',
         'ng: ちょっとゆっくり'
       ],
       toofast: [
@@ -2696,7 +2699,7 @@
             if (messageType === 'capitalAttack') {
               if (loop < 255){
                 loop += 1;
-                sleepTime = 1;
+                sleepTime = 0.7;
                 message = '(' + loop + '発目) '+ lastLine;
                 processType = 'continue';
               } else {
@@ -2707,9 +2710,12 @@
                 i++;
               }
             } else if (text.startsWith('アリーナチャレンジ開始')||text.startsWith('リーダーになった')) {
+              if (cellType === 'onceMore' && text.includes('新しいアリーナリーダー')) {
+                cellType = 'teamAdjacent';
+              }
               if (loop < 255){
                 loop += 1;
-                sleepTime = 1;
+                sleepTime = 0.7;
                 message = '(' + loop + '発目) '+ lastLine;
                 processType = 'reload';
               } else {
@@ -2719,6 +2725,12 @@
                 processType = 'return';
               }
               i++;
+            } else if (messageType === 'onemoretime') {
+              sleepTime = 90;
+              excludeSet.delete(region.join(','));
+              message = lastLine;
+              cellType = 'onceMore';
+              processType = 'reload';
             } else if (messageType === 'breaktime') {
               success = true;
               message = lastLine;
@@ -2766,24 +2778,24 @@
                 message = '(' + loop + '発目) '+ lastLine;
                 processType = 'continue';
               } else if (messageType === 'nonAdjacent') {
-                cellType = 'nonAdjacent';
                 loop += 1;
                 message = '(' + loop + '発目) '+ lastLine;
+                cellType = 'nonAdjacent';
                 processType = 'break';
               } else if (messageType === 'teamAdjacent') {
-                cellType = 'teamAdjacent';
                 loop += 1;
                 message = '(' + loop + '発目) '+ lastLine;
+                cellType = 'teamAdjacent';
                 processType = 'break';
               } else if (messageType === 'capitalAdjacent') {
-                cellType = 'capitalAdjacent';
                 loop += 1;
                 message = '(' + loop + '発目) '+ lastLine;
+                cellType = 'capitalAdjacent';
                 processType = 'break';
               } else if (messageType === 'mapEdge') {
-                cellType = 'mapEdge';
                 loop += 1;
                 message = '(' + loop + '発目) '+ lastLine;
+                cellType = 'mapEdge';
                 processType = 'break';
               }
               i++;
@@ -2791,15 +2803,15 @@
             if (success) {
               if (location.href.includes('/teambattle?m=rb')) {
                 if (currentProgress < 16) {
-                  nextProgress = 18;
+                  nextProgress = 19;
                 } else if (currentProgress < 33) {
-                  nextProgress = 35;
+                  nextProgress = 36;
                 } else if (currentProgress < 50) {
                   nextProgress = 52;
                 } else if (currentProgress < 66) {
-                  nextProgress = 68;
+                  nextProgress = 69;
                 } else if (currentProgress < 83) {
-                  nextProgress = 85;
+                  nextProgress = 86;
                 } else {
                   nextProgress = 2;
                 }
@@ -2879,15 +2891,15 @@
         if (!success && regions[cellType].length === 0) {
           if (location.href.includes('/teambattle?m=rb')) {
             if (currentProgress < 16) {
-               nextProgress = 18;
+               nextProgress = 19;
               } else if (currentProgress < 33) {
-               nextProgress = 35;
+               nextProgress = 36;
               } else if (currentProgress < 50) {
                nextProgress = 52;
               } else if (currentProgress < 66) {
-               nextProgress = 68;
+               nextProgress = 69;
               } else if (currentProgress < 83) {
-               nextProgress = 85;
+               nextProgress = 86;
               } else {
                nextProgress = 2;
               }
@@ -2913,8 +2925,8 @@
         if (!res.ok) throw new Error(`[${res.status}] /teambattle`);
         const text = await res.text();
         const doc = new DOMParser().parseFromString(text, 'text/html');
-        const h1 = doc?.querySelector('h1')?.textContent;
-        if (h1 !== 'どんぐりチーム戦い') throw new Error('title.ng info');
+        const headerText = doc?.querySelector('header')?.textContent || '';
+        if (!headerText.includes('どんぐりチーム戦い')) throw new Error('title.ng info');
 
         const scriptContent = doc.querySelector('.grid > script').textContent;
         const cellColorsString = scriptContent.match(/const cellColors = ({.+?})/s)[1];
@@ -3004,6 +3016,11 @@
           return mapEdgeSet.has(key) && !capitalSet.has(key);
         })
 
+        const onceMoreCells = nonAdjacentCells.filter(([r, c]) => {
+          const key = `${r}-${c}`;
+          return key in cellColors && !teamColorSet.has(key);
+        });
+
         function shuffle(arr) {
           for (let i = arr.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -3021,7 +3038,8 @@
           nonAdjacent: shuffle(filteredCells(nonAdjacentCells)),
           capitalAdjacent: shuffle(filteredCells(capitalAdjacentCells)),
           teamAdjacent: shuffle(filteredCells(teamAdjacentCells)),
-          mapEdge: shuffle(filteredCells(mapEdgeCells))
+          mapEdge: shuffle(filteredCells(mapEdgeCells)),
+          onceMore: shuffle(filteredCells(onceMoreCells))
         };
         return regions;
       } catch (e) {
@@ -3030,7 +3048,8 @@
           nonAdjacent: [],
           capitalAdjacent: [],
           teamAdjacent: [],
-          mapEdge: []
+          mapEdge: [],
+          onceMore: []
         };
       }
     }
@@ -3057,14 +3076,14 @@
     }
     async function equipChange (region) {
       const [ row, col ] = region;
-      const url = `https://donguri.5ch.net/teambattle?r=${row}&c=${col}&`+MODE;
+      const url = `https://donguri.5ch.io/teambattle?r=${row}&c=${col}&`+MODE;
       try {
         const res = await fetch(url);
         if(!res.ok) throw new Error(`[${res.status}] /teambattle?r=${row}&c=${col}`);
         const text = await res.text();
         const doc = new DOMParser().parseFromString(text,'text/html');
-        const h1 = doc?.querySelector('h1')?.textContent;
-        if(h1 !== 'どんぐりチーム戦い') return Promise.reject(`title.ng`);
+        const headerText = doc?.querySelector('header')?.textContent || '';
+        if(!headerText.includes('どんぐりチーム戦い')) return Promise.reject(`title.ng`);
         const table = doc.querySelector('table');
         if(!table) throw new Error('table.ng');
         const equipCond = table.querySelector('td small').textContent;
@@ -3099,7 +3118,7 @@
 
   async function drawProgressBar(){
     try {
-      const res = await fetch('https://donguri.5ch.net/');
+      const res = await fetch('https://donguri.5ch.io/');
       if (!res.ok) throw new Error(res.status);
       const text = await res.text();
       const doc = new DOMParser().parseFromString(text, 'text/html');
